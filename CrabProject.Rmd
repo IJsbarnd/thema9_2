@@ -1,0 +1,238 @@
+---
+title: "Crab body metrics - predicting the subspecies of crabs"
+author: "IJsbrand Pool, 403589"
+output:
+  pdf_document:
+    toc: true 
+    fig_caption: yes
+    fig_crop: no
+    highlight: haddock
+    keep_tex: yes
+    number_sections: yes
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+linkcolor: blue
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align='center',
+                      external=TRUE,
+                      warning=FALSE,
+                      fig.pos='H')
+```
+
+```{r, echo=F, message=F}
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+library(RWeka)
+library(reshape)
+library(kableExtra)
+```
+
+\newpage
+
+# Recapitulation
+The goal of this project was to find out if the species of a *Leptograpsus variegatus* was predictable. The research question for this project is "Can the species of a *L.variegatus* be determined based on some morphological measurements of its carapace". The data needed for this contains 5 morphological measurements, measured in millimeters. To answer this question, the data was first explored and cleaned. Visualizations were created to show these explorations. Then, multiple machine learning algorithms were tested to find what algorithm could be used best. After these tests, the SimpleLogistics algorithm reached a perfect 100% accuracy. This could be because the dataset is very evenly divided, with exactly 100 blue and 100 orange crabs.
+
+\newpage
+
+# Introduction
+The rock crab *Leptograpsus variegatus*, is recorded as occurring on a number of southern Pacific islands, the western coast of South America, and the coasts of Australia south of the Tropic of Capricorn. Mahon, using ecological studies which extended those of Shield, and a genetical analysis based on an electrophoretic study, established the specific distinctness of rock crabs of the blue and orange forms of the genus *Leptograpsus* which occur on the coasts of Australia. These colour forms were previously regarded as morphs of *L. variegatus.* 
+
+In an attempt to resolve this problem of identification, a morphological study of the Western Australian species was undertaken. This paper reports an exploratory data analysis of the data and a machine learning algorithm to predict the species of the crab based on this data.
+
+The dataset used is the crab body metrics dataset by Campbell, N.A. and Mahon, R.J. (1974) A multivariate study of variation in two species of rock crab of genus *Leptograpsus*[1]. This data set contains multiple morphological metrics of the bodies of *L. variegatus.* crabs, and the gender and color of the crab. The measured metrics are the frontal lobe size, rear width, carapace length, carapace width and body depth. All these values are in millimeters. There are 100 orange and 100 blue crabs. 50 crabs of each gender per color of crab.
+
+\newpage
+
+# Materials and methods
+This project researches if it is possible to predict the species of *L.variegatus* based on the morphological measurements of its carapace using machine learning. Multiple machine learning algorithms were used to find what algorithm has the best accuracy of predicting this. The data ws also described and visualized to help answering the research question.
+
+## Materials
+The data used in this project was publicated by Campbell, N.A. and Mahon, R.J. (1974) A multivariate study of variation in two species of rock crab of genus *Leptograpsus*[1]. This paper contained useful information for this project. The dataset used was a csv file containing multiple morphological measurements for 200 crabs. Not all attributes are as important, so it was part of the reasearch question to determine what attributes could be best used. Multiple packages were used for this project, see table 1.
+```{r, echo=F}
+packagelist <- c("kableExtra", "ggplot2", "factoextra", "RWeka", "reshape", "FactoMineR", "gridExtra")
+versionlist <- c("1.3.4", "3.3.5", "1.0.7", "0.4-43", "0.8.8", "2.4", "2.3")
+pvdf <- data.frame(packagelist, versionlist)
+kable(pvdf, caption = "The used packages and their versions.") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+## Methods
+There were multiple methods used for this project. Most of the packages contained one or more methods that were used for the creating this paper and its graphs. This paper was made in Rstudio, using Rmarkdown. Multiple machine learning algorithms were also used for this project. These were all used in the weka software. The java wrapper was made in the intelliJ software.
+
+
+\newpage
+
+# Results
+
+## Exploratory data analysis
+To give a better overview of the data, this exploratory data analysis was created. To do this, the initial data was first examined to see how the dataset is set up. Then, multiple graphs were made to determine if any of the attributes were connected. After that it is possible that the data might have to be changed or cleaned to be able to use it for machine learning algorithms.
+
+### Data description
+After the data was loaded in, a codebook with the attribute names and their descriptions was generated, shown in table 2. To get a better view of the measurements in the dataset, a five number summary was created for each attribute. These values are shown in table 3. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
+```{R read_data, echo=FALSE}
+#load in the data
+myData <- read.csv("data.csv")
+
+#create the codebook
+column <- colnames(myData)
+description <- c("Species", "Sex", "Index", "Frontal lobe size (mm)", "Rear width (mm)", "Carapace length (mm)", "Carapace width (mm)", "Body depth (mm)")
+codebook <- data.frame(column, description)
+kable(codebook, caption = "Codebook of the dataset") %>% 
+kable_styling(font_size = 10, latex_options = "hold_position")
+```
+
+```{r summary, echo=F}
+sumdat <- summary(myData[4:8])
+sumdat <- sub(".*:", "", sumdat)
+rownames(sumdat) <-  c("Minimum", "Q1", "Median", "Mean", "Q3", "Maximum")
+colnames(sumdat) <- c("Frontal Lobe", "Rear Width", "Carapace Length", "Carapace Width", "Body Depth")
+kable(sumdat, caption = "Five number summary of the morphological measurements of the crab bodies.") %>% 
+kable_styling(latex_options = "hold_position")
+```
+
+### Data visualisation
+To get a better view of how these attributes are correlated, multiple graphs were made. These graphs show the corralation between 2 attributes with the colored data points. These data points are colored to the color of the crab.
+```{r plots, fig.cap= "Spread of Front lobe size against Carapace width based on color", echo=F, fig.height = 3.5, fig.width = 5}
+#plot the Front lobe size against Carapace width
+ggplot() +
+  geom_point(data = myData[myData$sp == "B",], mapping = aes(x = FL, y = CW, color = 'Blue')) +
+  geom_point(data = myData[myData$sp == "O",], mapping = aes(x = FL, y = CW, color = 'Orange')) +
+  scale_color_manual(values=c("#4444EE", "#E69F00")) +
+  labs(x = "Frontal lobe size (mm)", y = "Carapace width (mm)", title='Front lobe size against Carapace width')
+```
+This plot shows that blue crabs on average have wider carapaces and shorter frontal lobes. This could be a good indicator to determine the subspecies of the crab.
+
+
+```{r, fig.cap= "Spread of Rear width against Carapace length based on color", echo=F, fig.height = 3.5, fig.width = 5}
+#plot the Rear width against Carapace length
+ggplot() +
+  geom_point(data = myData[myData$sp == "B",], mapping = aes(x = RW, y = CL, color = 'Blue')) +
+  geom_point(data = myData[myData$sp == "O",], mapping = aes(x = RW, y = CL, color = 'Orange')) +
+  scale_color_manual(values=c("#4444EE", "#E69F00")) +
+  labs(x = "Rear width (mm)", y = "Carapace length (mm)", title='Rear width against Carapace length')
+```
+This plot does not show a clear difference between blue and orange crabs. Still there are 2 separated groups, this could be investigated further.
+
+
+```{r, fig.cap="Spread of Body depth against Carapace width based on color", echo=F, fig.height = 3.5, fig.width = 5}
+#plot the Body depth against Carapace width
+ggplot() +
+  geom_point(data = myData[myData$sp == "B",], mapping = aes(x = BD, y = CW, color = 'Blue')) +
+  geom_point(data = myData[myData$sp == "O",], mapping = aes(x = BD, y = CW, color = 'Orange')) +
+  scale_color_manual(values=c("#4444EE", "#E69F00")) +
+  labs(x = "Body depth (mm)", y = "Carapace width (mm)", title='Body depth against Carapace width')
+```
+This plot shows again that blue crabs on average have wider carapaces, but that orange crabs tend to have deeper bodies. This could also be a good indicator to determine the subspecies of the crab, though its less clear than figure 1.
+
+
+
+As shown in the figures one and three, the metrics of the orange and the blue crabs are in two separate groups. This could mean that the two species could be identifiable by their carapace width. However, figure two also has two clear groups but the colors of the crabs are mixed. This could mean that these two groups are separated by gender. 
+
+```{r gender, fig.cap="Spread of Carapace length against Rear width based on gender", echo=F, fig.height = 3.5, fig.width = 5}
+# plot the rear width against the carapace length based on gender
+ggplot() +
+  geom_point(data = myData[myData$sex == "F",], mapping = aes(x = RW, y = CL, color = 'Female')) +
+  geom_point(data = myData[myData$sex == "M",], mapping = aes(x = RW, y = CL, color = 'Male')) +
+  scale_color_manual(values=c("#EE4444", "#4444EE")) +
+  labs(x = "Rear width (mm)", y = "Carapace length (mm)", title='Carapace length against Rear width based on gender')
+```
+As shown in figure 4, it is indeed two groups of the genders of the crabs. This means that the males have longer carapaces than the females.
+The difference in carapace length for both genders are explored further.
+
+
+```{r, fig.cap="Distribution of Carapace length for all male and female crabs", echo=F, fig.height = 3.5, fig.width = 5}
+# sepperate the orange and blue crabs
+orangecrabs <- myData[myData$sp == "O",]
+bluecrabs <- myData[myData$sp == "B",]
+
+ggplot(data=myData, mapping = aes(x=sex, y=CL)) +
+  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
+  labs(x = "Gender", y = 'Carapace length (mm)', title='All crabs')
+```
+This plot does not show a big difference between male and female crabs. The female crabs have a slightly shorter carapace, but it does not seem significant. This could be investigated further, but is not much connected to the research question.
+
+
+```{r, fig.cap="Distribution of Carapace length for the orange and the blue male and female crabs", echo=F, message=F}
+require(gridExtra)
+
+ocrabs <- ggplot(data=orangecrabs, mapping = aes(x=sex, y=CL)) +
+  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
+  labs(x = "Gender", y = 'Carapace length (mm)', title='Orange crabs')
+
+bcrabs <- ggplot(data=bluecrabs, mapping = aes(x=sex, y=CL)) +
+  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
+  labs(x = "Gender", y = 'Carapace length (mm)', title='Blue crabs')
+
+grid.arrange(bcrabs, ocrabs, ncol=2)
+```
+This plot shows a small difference in the length of the carapace between male and female orange crabs. It shows that the male crabs have on average a shorter carapace, but the difference is not that big.
+
+This plot shows a bigger difference in the length of the carapace between male and female blue crabs. Here, the difference is means does seem significant.
+
+
+As shown in figure 7, it is mainly the blue crabs that have a significant difference in carapace length between genders. It shows that the male crabs have longer carapace lengths on average. In figure 6 its clear that the male orange crabs have shorter carapace lengths on average compared to the females.
+
+A variables PCA plot was generated to see how correlated all the variables are.
+
+```{r pca, echo=F, fig.height = 3.5, fig.width = 5}
+res.pca <- PCA(myData[4:ncol(myData)], ncp = 5, graph = FALSE)
+
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+```
+
+This PCA plot shows that the variables are highly correlated. The least correlated variable is the Rear width. This vector has the largest angle with the Carapace length, the same two variables were used to discover the difference in carapace length distribution between the genders.
+
+## Cleaning of the data
+In its current form, the data is not ready for machine learning. Because of the id column, some of the machine learning algorithms overfit their model by using this column. So this column should be removed first. The species columns was also moved to the last column so it would be used as the class attribute.
+```{r, echo=F}
+clean_data <- myData[,c(2,4:ncol(myData), 1)]
+write.csv(clean_data, "cleanedData.csv", row.names = F, col.names = F)
+```
+
+
+### Machine learning
+To find out what machine learning algorithm is the best for predicting the species of crab, multiple algorithms were tested. These algorithms are ZeroR, OneR, Simple logistic, Naive bayes, Random forest, J48, SMO and K-nearest neighbor. These algorithms were tested using 10 fold cross-validation. The highest quality metric for this dataset is the accuracy, since it does not matter whether a blue crab is predicted to be orange, or an orange crab to be blue. The software used to calculate the accuracy is weka. After the classification, the accuracy of these algorithms was saved in a csv file, and are shown in this barplot below.
+```{r ml, fig.cap="The accuracy of the machine learning algorithms ordered from low to high.", echo=F, fig.height = 3.5, fig.width = 5}
+algorithms <- read.csv("ml.csv")
+ggplot(data=as.data.frame(algorithms), mapping = aes(x=reorder(Algorithm,+Accuracy), y=Accuracy)) +
+  geom_bar(stat = 'identity') +
+  labs(x = "Algorithm", y = 'Accuracy (%)', title='Accuracy of algorithms')
+```
+This plot shows a few interesting things, most notably the 100% accuracy of Simple logistic. The output in weka of the classification using Simple logistic with 10 fold cross-validation shows a model for each species. The model for the blue crabs shows 1.03 + [FL] * -0.6 + [CW] * 0.31 + [BD] * -0.22. The model for the orange crabs shows -1.03 + [FL] * 0.6 + [CW] * -0.31 + [BD] * 0.22. The values in the model of the orange crabs are the values of the model of the blue crabs times -1. The metrics used in the models are Front lobe size, Carapace width and Body depth. The barplot also shows an exact 50% accuracy for the ZeroR algorithm. This is expected since the data has the same amount of blue crabs as orange crabs.
+
+Using the output from the simple logistic algorithm, the following roc curve can be made.
+```{r, echo=F, fig.height = 3, fig.width = 3}
+df <- read.arff("rocdata.arff")
+ggplot(data=df, mapping = aes(x=`False Positive Rate`, y=`True Positive Rate`)) +
+  geom_path()
+
+```
+The curve is of course two straight lines because the accuracy is 100%.
+
+
+\newpage
+
+# Conclusion & Discussion
+The goal was to get the dataset ready for machine learning. The data was analyzed and cleaned to make so it is ready to be used in machine learning algorithms. The data does not contain many outliers. The data points seem easy to classify since most plots show clear groups of blue and orange crabs. As shown in figure 4, the gender of the crab could also be a good attribute to help predict the species of crab. The data also had to be cleaned. This was done by removing the index column, since this column can not be used to help determine the species of crab. It might also be a problematic attribute for some machine learning algorithms. Then, the species column was moved to the last column, so the machine learning algorithms will use this column as the class index.
+
+
+\newpage
+
+# Sources
+References
+----------------
+[1] Campbell, N.A. and Mahon, R.J. (1974) A multivariate study of variation in two species of rock crab of genus Leptograpsus. Australian Journal of Zoology 22, 417–425.
+
+
+
+
+
+
+
