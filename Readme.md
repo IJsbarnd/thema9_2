@@ -3,7 +3,7 @@ This repository contains the report files, log files and the data files used in 
 
 ### How to use ###
 
-The finished project is viewable in the CrabProject.pfd. To see the code and how this report was made, open the CrabProject.Rmd file. You can run this Rmd file to create the pdf file.
+The finished project is viewable in the CrabProject.pdf. To see the code and how this report was made, open the CrabProject.Rmd file. You can run this Rmd file to create the pdf file.
 
 The original data set was downloaded from the internet. The other datafiles were created using the WEKA software. All these files are available in this repository.
 
