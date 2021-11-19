@@ -76,7 +76,7 @@ To give a better overview of the data, this exploratory data analysis was create
 After the data was loaded in, a codebook with the attribute names and their descriptions was generated, shown in table 2. To get a better view of the measurements in the dataset, a five number summary was created for each attribute. These values are shown in table 3. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
 ```{R read_data, echo=FALSE}
 #load in the data
-myData <- read.csv("data.csv")
+myData <- read.csv("datafiles/data.csv")
 
 #create the codebook
 column <- colnames(myData)
@@ -191,14 +191,14 @@ This PCA plot shows that the variables are highly correlated. The least correlat
 In its current form, the data is not ready for machine learning. Because of the id column, some of the machine learning algorithms overfit their model by using this column. So this column should be removed first. The species columns was also moved to the last column so it would be used as the class attribute.
 ```{r cleaning, echo=F}
 clean_data <- myData[,c(2,4:ncol(myData), 1)]
-write.csv(clean_data, "cleanedData.csv", row.names = F, col.names = F)
+write.csv(clean_data, "datafiles/cleanedData.csv", row.names = F, col.names = F)
 ```
 
 
 ### Machine learning
 To find out what machine learning algorithm is the best for predicting the species of crab, multiple algorithms were tested. These algorithms are ZeroR, OneR, Simple logistic, Naive bayes, Random forest, J48, SMO and K-nearest neighbor. These algorithms were tested using 10 fold cross-validation. The highest quality metric for this dataset is the accuracy, since it does not matter whether a blue crab is predicted to be orange, or an orange crab to be blue. The software used to calculate the accuracy is weka. After the classification, the accuracy of these algorithms was saved in a csv file, and are shown in this barplot below.
 ```{r ml, fig.cap="The accuracy of the machine learning algorithms ordered from low to high.", echo=F, fig.height = 3.5, fig.width = 5}
-algorithms <- read.csv("ml.csv")
+algorithms <- read.csv("datafiles/ml.csv")
 ggplot(data=as.data.frame(algorithms), mapping = aes(x=reorder(Algorithm,+Accuracy), y=Accuracy)) +
   geom_bar(stat = 'identity') +
   labs(x = "Algorithm", y = 'Accuracy (%)', title='Accuracy of algorithms')
@@ -207,7 +207,7 @@ This plot shows a few interesting things, most notably the 100% accuracy of Simp
 
 Using the output from the simple logistic algorithm, the following roc curve can be made.
 ```{r roc, echo=F, fig.height = 3, fig.width = 3}
-df <- read.arff("rocdata.arff")
+df <- read.arff("datafiles/rocdata.arff")
 ggplot(data=df, mapping = aes(x=`False Positive Rate`, y=`True Positive Rate`)) +
   geom_path()
 
@@ -231,6 +231,17 @@ Future research can be used to show more correlation between other measurements.
 References
 ----------------
 [1] Campbell, N.A. and Mahon, R.J. (1974) A multivariate study of variation in two species of rock crab of genus Leptograpsus. Australian Journal of Zoology 22, 417–425.
+
+
+
+
+## Github repositories
+Link to the report and log repository:
+https://github.com/IJsbarnd/CrabWrapper
+
+Link to the java wrapper repository:
+https://github.com/IJsbarnd/thema9_2
+
 
 
 
