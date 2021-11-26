@@ -30,6 +30,11 @@ library(FactoMineR)
 library(RWeka)
 library(reshape)
 library(kableExtra)
+library(forcats)
+library(dplyr)
+library(ggcorrplot)
+library(gridExtra)
+library(grid)
 ```
 
 \newpage
@@ -179,22 +184,32 @@ write.csv(clean_data, "datafiles/cleanedData.csv", row.names = F, col.names = F)
 
 ### WEKA
 To find out what machine learning algorithm is the best for predicting the species of crab, multiple algorithms were tested. These algorithms are ZeroR, OneR, Simple logistic, Naive bayes, Random forest, J48, SMO and K-nearest neighbor. These algorithms were tested using 10 fold cross-validation. The highest quality metric for this dataset is the accuracy, since it does not matter whether a blue crab is predicted to be orange, or an orange crab to be blue. The software used to calculate the accuracy is weka. After the classification, the accuracy of these algorithms was saved in a csv file, and are shown in this barplot below.
-```{r ml, fig.cap="The accuracy of the machine learning algorithms ordered from low to high.", fig.height = 3.5, fig.width = 5}
+```{r ml, fig.cap="The accuracy of the machine learning algorithms ordered from low to high."}
 algorithms <- read.csv("datafiles/ml.csv")
-ggplot(data=as.data.frame(algorithms), mapping = aes(x=reorder(Algorithm,+Accuracy), y=Accuracy)) +
-  geom_bar(stat = 'identity') +
-  labs(x = "Algorithm", y = 'Accuracy (%)', title='Accuracy of algorithms')
+algorithms <- data.frame(algorithms)
+
+ggplot(algorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm)) +
+  geom_bar(stat="identity", alpha=.6, width=.4) +
+  coord_flip() +
+  xlab("") +
+  theme_bw()
 ```
 This plot shows a few interesting things, most notably the 100% accuracy of Simple logistic. The output in weka of the classification using Simple logistic with 10 fold cross-validation shows a model for each species. The model for the blue crabs shows 1.03 + [FL] * -0.6 + [CW] * 0.31 + [BD] * -0.22. The model for the orange crabs shows -1.03 + [FL] * 0.6 + [CW] * -0.31 + [BD] * 0.22. The values in the model of the orange crabs are the values of the model of the blue crabs times -1. The metrics used in the models are Front lobe size, Carapace width and Body depth. The barplot also shows an exact 50% accuracy for the ZeroR algorithm. This is expected since the data has the same amount of blue crabs as orange crabs.
 
-Using the output from the simple logistic algorithm, the following roc curve can be made.
-```{r roc, echo=F, fig.height = 3, fig.width = 3}
-df <- read.arff("datafiles/rocdata.arff")
-ggplot(data=df, mapping = aes(x=`False Positive Rate`, y=`True Positive Rate`)) +
-  geom_path()
 
+\newpage
+
+
+```{r metalearners}
+metaalgorithms <- read.csv("datafiles/meta ml.csv")
+metaalgorithms <- data.frame(metaalgorithms)
+
+ggplot(metaalgorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm)) +
+  geom_bar(stat="identity", alpha=.6, width=.4) +
+  coord_flip() +
+  xlab("") +
+  theme_bw()
 ```
-The curve is of course two straight lines because the accuracy is 100%.
 
 
 \newpage

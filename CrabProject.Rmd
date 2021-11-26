@@ -82,6 +82,19 @@ kable(pvdf, caption = "The used packages and their versions.") %>%
 ```
 The packages were used to be able to manipulate and visualize the data as well as load in data that was gathered from the WEKA program. Furthermore, one column of the data set was deleted, the index column since there was no apparent use for this column.
 
+### Java wrapper
+To be able to run this project via the command line, a wrapper was created. This wrapper was made in java. It can classify instances given by the user using the SimpleLogistics model.
+
+### Github repositories
+Two github repositories were used for this project. A repository for the report and log with the datafiles, and a repository for the java wrapper. 
+
+Link to the report and log repository:
+https://github.com/IJsbarnd/CrabWrapper
+
+Link to the java wrapper repository:
+https://github.com/IJsbarnd/thema9_2
+
+
 \newpage
 ## Methods
 Before the data could be worked with, it had to be examined and its quality needed to be checked, there were no missing values and only one column that did not seem useful, so only one correction had to be made in order to understand the data better.
@@ -317,7 +330,7 @@ To find out what machine learning algorithm is the best for predicting the speci
 algorithms <- read.csv("datafiles/ml.csv")
 algorithms <- data.frame(algorithms)
 
-ggplot(algorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm)) +
+ggplot(algorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm), title="Accuracy of the machine learning algorithms") +
   geom_bar(stat="identity", alpha=.6, width=.4) +
   coord_flip() +
   xlab("") +
@@ -325,18 +338,25 @@ ggplot(algorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fil
 ```
 This plot shows a few interesting things, most notably the 100% accuracy of Simple logistic. The output in weka of the classification using Simple logistic with 10 fold cross-validation shows a model for each species. The model for the blue crabs shows 1.03 + [FL] * -0.6 + [CW] * 0.31 + [BD] * -0.22. The model for the orange crabs shows -1.03 + [FL] * 0.6 + [CW] * -0.31 + [BD] * 0.22. The values in the model of the orange crabs are the values of the model of the blue crabs times -1. The metrics used in the models are Front lobe size, Carapace width and Body depth. The barplot also shows an exact 50% accuracy for the ZeroR algorithm. This is expected since the data has the same amount of blue crabs as orange crabs.
 
-```{r, echo = F}
+\newpage
+
+### Metalearners
+```{r metalearners, echo = F, fig.cap="The accuracy of the meta machine learning algorithms ordered from low to high."}
 metaalgorithms <- read.csv("datafiles/meta ml.csv")
 metaalgorithms <- data.frame(metaalgorithms)
 
-ggplot(metaalgorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm)) +
+ggplot(metaalgorithms, aes(x = reorder(Algorithm, desc(Accuracy)), y = Accuracy, fill = Algorithm), title="Accuracy of the meta learners") +
   geom_bar(stat="identity", alpha=.6, width=.4) +
   coord_flip() +
   xlab("") +
   theme_bw()
 ```
+To get the best model for predicting the color of the crab, multiple metalearners using this SimpleLogistic method were tested. The tested meta learners are boosting, bagging, voting, stacking and randomization. These meta learners all use SimpleLogistics as the learners. As shown in figure 10, randomization got the best score out of the meta learners. This meta learner has a lower accuracy than the base SimpleLogistic model. It uses multiple SimpleLogistic learners with different settings. This means that the settings used in the base SimpleLogistics model are the best.
+
+
 \newpage
-```{r rocs of algorithms, echo=F,}
+### ROC-curves
+```{r rocs of algorithms, echo=F, fig.cap="The false positive rate against the true positive rate of the machine learning algorithms"}
 ROC_build <- function(filehandle){
   open_file <- RWeka::read.arff(filehandle)
   plot <- ggplot(open_file)+ 
@@ -362,11 +382,11 @@ ROC_creator <- function (filefolder){
 }
 ROC_creator("rocfiles\\algorithms")
 ```
-
+To get a better view of how the machine learning algorithms did, the ROC-curves of all of the algorithms were generated and shown in figure 11. The order of the plots is as follows: figure 11.1 Naive Bayes, figure 11.2 K-nearest neighbour, figure 11.3 J48 tree, figure 11.4 OneR, figure 11.5 Randomforrest, figure 11.6 SimpleLogistics, figure 11.7 SMO, figure 11.8 ZeroR. These plots also color the curve to match the threshold. As shown in figure 11.6, the ROC-curve of the SimpleLogistics model, it has an area under the curve of exactly 1. This means that this algorithm has a 100% accuracy. 
 ```{r, fig.cap="The metalearners: Stacking, Boosting, Bagging, Voting and Randomization", echo = FALSE}
 ROC_creator("rocfiles\\meta")
 ```
-
+To give a better look at the meta learners, the ROC-curves of the meta learners were also generated, see figure 12. The order of these graphs is bagging, boosting, randomization, stacking and voting. These graphs show high areas under the curves, but not as high as the base SimpleLogistic model. This means that the base SimpleLogistics model can be better used to predict the color of the crab.
 \newpage
 
 # Conclusion & Discussion
@@ -377,6 +397,10 @@ The goal was to get the dataset ready for machine learning. The data was analyze
 Future research can be used to show more correlation between other measurements. It can be researched whether or not the gender of the crab could be predicted using these morphological measurements. Machine learning use could also be improved by expanding the dataset, or getting different amounts of blue or orange crabs, with different amounts of male and female crabs. 
 
 
+## Project proposal for minor BIN
+This project could be continued in a minor. The machine learning could be upgraded, or the wrapper could be improved. For the minor Application Design, a web app could be made to be able to classify new instances online. This would improve the project by making it more accessible for the user, and easier to understand. For the minor HighThroughput High Preformance Biocomputing, the machine learning part could be improved with new methods we will be learning there.
+
+
 \newpage
 
 # Sources
@@ -384,12 +408,3 @@ References
 ----------------
 [1] Campbell, N.A. and Mahon, R.J. (1974) A multivariate study of variation in two species of rock crab of genus Leptograpsus. Australian Journal of Zoology 22, 417–425.
 
-
-
-
-## Github repositories
-Link to the report and log repository:
-https://github.com/IJsbarnd/CrabWrapper
-
-Link to the java wrapper repository:
-https://github.com/IJsbarnd/thema9_2
