@@ -1,9 +1,9 @@
 Algorithm,Accuracy
-ZeroR,50
-OneR,69
-IBK,94.5
 SimpleLogistic,100
+IBK,94.5
 RandomForest,91
 J48,88
 SMO,78.5
+OneR,69
 Bayes,62.5
+ZeroR,50

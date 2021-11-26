@@ -1,0 +1,6 @@
+Algorithm,Accuracy
+Randomization,92.5
+Stacking,92
+Voting,88
+Bagging,85.5
+Boosting,80
