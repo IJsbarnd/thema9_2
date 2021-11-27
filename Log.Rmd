@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.pos='H')
 ```
 
-```{r libraries, message=F}
+```{r libraries, echo=F, message=F}
 library(ggplot2)
 library(factoextra)
 library(FactoMineR)
@@ -56,7 +56,7 @@ The goal of this project was to find out if the subspecies of a *Leptograpsus va
 \newpage
 
 ## Data analysis
-```{r Reading data, echo=FALSE}
+```{r Reading data}
 # Load in the data
 myData <- read.csv("datafiles/data.csv")
 
@@ -66,24 +66,23 @@ orangecrabs <- myData[myData$sp == "O",]
 
 # Creating the code book
 column <- colnames(myData)
-description <- c("Species", "Sex", "Index", "Frontal lobe size (mm)", "Rear width (mm)", "Carapace length (mm)", "Carapace width (mm)", "Body depth (mm)")
+description <- c("Species", "Sex", "Index", "Frontal lobe size (mm)", "Rear width (mm)",
+                 "Carapace length (mm)", "Carapace width (mm)", "Body depth (mm)")
 codebook <- data.frame(column, description)
 
 kable(codebook, caption = "Codebook of the crab data set") %>% 
 kable_styling(font_size = 10, latex_options = "hold_position")
 ```
-After the data was loaded in, a codebook with the attribute names and their descriptions was generated, shown in table 2. To get a better view of the measurements in the data set, a five number summary was created for each attribute. These values are shown in table 3. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
-
+After the data was loaded in, a code book with the attribute names and their descriptions was generated, shown in table 1. To get a better view of the measurements in the data set, a five number summary was created for each attribute. These values are shown in table 2. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
 
 ```{r summary}
 sumdat <- summary(myData[4:8])
 sumdat <- sub(".*:", "", sumdat)
 rownames(sumdat) <-  c("Minimum", "Q1", "Median", "Mean", "Q3", "Maximum")
 colnames(sumdat) <- c("Frontal Lobe", "Rear Width", "Carapace Length", "Carapace Width", "Body Depth")
-kable(sumdat, caption = "Five number summary of the morphological measurements of the crab bodies.") %>% 
+kable(sumdat, caption = "Five number summaries of the morphological measurements.") %>% 
 kable_styling(latex_options = "hold_position")
 ```
-
 The data in its current form, is not ready for the use of a machine learning algorithm, this is due to the Index column, some algorithms will over fit their model by making use of this column, so this column needs to be deleted to be able to verify the quality of the data gathered. The species columns was also moved to the last column so it would be used as the class attribute.
 
 ```{r Data cleaning}
@@ -95,9 +94,8 @@ clean_data <- myData[,c(2,4:ncol(myData), 1)]
 \newpage
 
 ## Visualisation
-To gain a better understanding of the correlation between the attributes in the data set, some visualizations were made.
-
-```{r figure1, fig.cap= "Spread of Front lobe size against Carapace width based on color", fig.height = 3.5, fig.width = 5, warning=F}
+### Scatterplot for frontal lobe size against carapace width
+```{r figure1, fig.cap= "Spread of Front lobe size against Carapace width based on color", fig.height = 3.5, fig.width = 5}
 #plot the Front lobe size against Carapace width
 ggplot(data = clean_data,  
 aes(x = FL, y = CW)) + 
@@ -108,10 +106,10 @@ aes(x = FL, y = CW)) +
   xlab("Frontal Lobe Size (mm)") + ylab("Carapace Width (mm)") +
   scale_colour_discrete(name="Crab species")
 ```
-The image above shows the spread of front lobe size against Carapace width based on color, this visualization has been made to be able to see if there was any correlation between these two attributes. The image shows that the blue crabs have wider carapaces on average and shorter frontal lobes, this could be a genetic trait for the color of this crab and therefore this could be a good indicator to determine the subspecies of the crab by the use of a machine learning algorithm. 
+This plot plots the frontal lobe size against the carapace width of the blue crabs as blue dots, and of the orange crabs as orange dots. It shows that blue crabs on average have wider carapaces and shorter frontal lobes, and that these attributes are somewhat correlated. This could be a good indicator to determine the subspecies of the crab.
+\newpage
 
-Since there were only 200 crabs in this study this could of course be a coincidence, but for the continuation of this report the assumption of data correctness due to differences in species has been accepted.
-
+### Scatterplot for rear width against carapace length
 ```{r figure2, fig.cap= "Spread of Rear width against Carapace length based on color", fig.height = 3.5, fig.width = 5}
 #plot the Rear width against Carapace length
 ggplot() +
@@ -120,9 +118,10 @@ ggplot() +
   scale_color_manual(values=c("#4444EE", "#E69F00")) +
   labs(x = "Rear width (mm)", y = "Carapace length (mm)", title='Rear width against Carapace length')
 ```
-Similar to the previous plot, this data also seems to show some correlation with each other, this makes the question "is all the data correlated" rise, this will have to be investigated if the data continues to seem correlated. In the plot above the differences between Rear width against Carapace length are visible for both the different crabs, this being the blue group and the orange group.
-
+In this plot, the datapoints of the blue crabs are colored blue, and the datapoints of the orange crabs colored orange again. This plot however, does not show a clear difference between blue and orange crabs. Still there are 2 separated groups, this means that these attributes are also somewhat correlated and this could be investigated further.
 \newpage
+
+### Scatterplot for body depth against carapace width
 ```{r figure3, fig.cap="Spread of Body depth against Carapace width based on color", fig.height = 3.5, fig.width = 5}
 #plot the Body depth against Carapace width
 ggplot() +
@@ -131,35 +130,36 @@ ggplot() +
   scale_color_manual(values=c("#4444EE", "#E69F00")) +
   labs(x = "Body depth (mm)", y = "Carapace width (mm)", title='Body depth against Carapace width')
 ```
-This plot again shows that the blue crabs on average seem to have a wider carapaces, but the orange crabs tend to have deeper bodies. The attributes seem to very correlated with each other and this again supports the theory that there may be multiple morphological attributes that will help determine the color of the crab. However the attributes above seem to be less clear in this then the attributes within figure one.
-
-As shown inside the figures one and three, the metrics of the orange and the blue crabs appear to be in two different groups. This could indicate that the two species could be identifiable by different elements, including their carapace width. However, figure two indicates that the two groups of crabs appear to have some sort of difference even within their own respective group, this could indicate that gender plays a role in the sizes of the morphological measurements.
-
+In this plot, again the data points were colored to represent the color of the crab. This plot also shows that blue crabs on average have wider carapaces, but that orange crabs tend to have deeper bodies, and that these attributes are somewhat correlated. This could also be a good indicator to determine the subspecies of the crab, though its less clear than figure 1.
 \newpage
-```{r figure4, fig.cap="Checking if the gender makes a difference"}
-library(ggpubr)
 
-densityplot1 <- ggplot(clean_data, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+```{r figure4, fig.cap="Checking if the gender makes a difference"}
+densityplot1 <- ggplot(clean_data, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), 
+                                                                        alpha = 0.5) +
 ggtitle("FL") + ylab("Density")
 
 
-densityplot2 <- ggplot(clean_data, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+densityplot2 <- ggplot(clean_data, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), 
+                                                                        alpha = 0.5) +
 ggtitle("RW") + ylab("Density")
 
-densityplot3 <- ggplot(clean_data, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+densityplot3 <- ggplot(clean_data, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), 
+                                                                        alpha = 0.5) +
 ggtitle("CL") + ylab("Density")
 
-densityplot4 <- ggplot(clean_data, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+densityplot4 <- ggplot(clean_data, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), 
+                                                                        alpha = 0.5) +
 ggtitle("CW") + ylab("Density")
 
-densityplot5 <- ggplot(clean_data, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+densityplot5 <- ggplot(clean_data, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), 
+                                                                        alpha = 0.5) +
 ggtitle("BD") + ylab("Density")
 
 densityplots <- ggarrange(densityplot1, densityplot2, densityplot3, densityplot4, densityplot5,
                    ncol = 2, nrow = 3)
 
 title <- expression(atop(bold("Expression data"), 
-                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
 annotate_figure(densityplots,
                 top=text_grob(title))
 ```
@@ -177,7 +177,7 @@ In figure 4.5 the Body depth in millimeters is shown, this is plotted against th
 
 One thing that is noticeable here is the distributions of the female crabs, these appear to be more of a normal distribution then the male crabs, which can be due to coincidence since it is a small data set, but it can also be that the body of a female crab is more normally distributed then the body of its male counterpart. 
 
-```{r}
+```{r correlogram}
 corr <- round(cor(clean_data[2:6]), 2)
 
 # Plot
@@ -196,52 +196,62 @@ As seen in the plot above, the data inside the data set does indeed seem to corr
 
 
 ```{r figure6, fig.cap="Checking if the gender makes a difference"}
-orangedensityplot1 <- ggplot(orangecrabs, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+orangedensityplot1 <- ggplot(orangecrabs, aes(FL), alpha = 0.5) +
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("FL") + ylab("Density")
 
-orangedensityplot2 <- ggplot(orangecrabs, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+orangedensityplot2 <- ggplot(orangecrabs, aes(RW), alpha = 0.5) +
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("RW") + ylab("Density")
 
-orangedensityplot3 <- ggplot(orangecrabs, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+orangedensityplot3 <- ggplot(orangecrabs, aes(CL), alpha = 0.5) +
+  geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
 ggtitle("CL") + ylab("Density")
 
-orangedensityplot4 <- ggplot(orangecrabs, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+orangedensityplot4 <- ggplot(orangecrabs, aes(CW), alpha = 0.5) +
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("CW") + ylab("Density")
 
-orangedensityplot5 <- ggplot(orangecrabs, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+orangedensityplot5 <- ggplot(orangecrabs, aes(BD), alpha = 0.5) +
+  geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
 ggtitle("BD") + ylab("Density")
 
-orangedensityplots <- ggarrange(orangedensityplot1, orangedensityplot2, orangedensityplot3, orangedensityplot4, orangedensityplot5,
-                   ncol = 2, nrow = 3)
+orangedensityplots <- ggarrange(orangedensityplot1, orangedensityplot2, orangedensityplot3,
+                                orangedensityplot4, orangedensityplot5, ncol = 2, nrow = 3)
 
 title <- expression(atop(bold("Expression data"), 
-                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+        scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
 annotate_figure(orangedensityplots,
                 top=text_grob(title))
 ```
 As seen in figure six, the orange crabs their morphological measurements have been taken to be able to see if the sex matters when it comes to the colours of the crabs, 
-```{r figure 7ALSE}
+```{r figure 7}
 
-bluedensityplot1 <- ggplot(bluecrabs, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+bluedensityplot1 <- ggplot(bluecrabs, aes(FL), alpha = 0.5) + 
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("FL") + ylab("Density")
 
-bluedensityplot2 <- ggplot(bluecrabs, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+bluedensityplot2 <- ggplot(bluecrabs, aes(RW), alpha = 0.5) + 
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("RW") + ylab("Density")
 
-bluedensityplot3 <- ggplot(bluecrabs, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+bluedensityplot3 <- ggplot(bluecrabs, aes(CL), alpha = 0.5) + 
+  geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
 ggtitle("CL") + ylab("Density")
 
-bluedensityplot4 <- ggplot(bluecrabs, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+bluedensityplot4 <- ggplot(bluecrabs, aes(CW), alpha = 0.5) +
+  geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
 ggtitle("CW") + ylab("Density")
 
-bluedensityplot5 <- ggplot(bluecrabs, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+bluedensityplot5 <- ggplot(bluecrabs, aes(BD), alpha = 0.5) + 
+  geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
 ggtitle("BD") + ylab("Density")
 
-bluedensityplots <- ggarrange(bluedensityplot1, bluedensityplot2, bluedensityplot3, bluedensityplot4, bluedensityplot5,
-                   ncol = 2, nrow = 3)
+bluedensityplots <- ggarrange(bluedensityplot1, bluedensityplot2, bluedensityplot3,
+                              bluedensityplot4, bluedensityplot5,ncol = 2, nrow = 3)
 
 title <- expression(atop(bold("Expression data"), 
-                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+        scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
 annotate_figure(bluedensityplots,
                 top=text_grob(title))
 ```
@@ -250,18 +260,18 @@ In figure six and seven the morphological variables of both color crabs have bee
 
 In figure seven the blue crabs are depicted, here differing from figure six, the male crabs of the blue species seem to be bigger in almost all aspects of the morphological components apart from rear width, this would indicate that for this species the male variant is bigger then the female variant, how ever, this is a data set with only 100 crabs per species and for a correct distribution a much larger sample size should be taken. For the carapace length, it seems that for this species alone it would be very good to be determined if the crab was of significant size, which species it would belong to. To see if this would work with a machine learning algorithm, further testing will need to be done.
 
-
-
+### PCA plot
 ```{r pca, fig.height = 3.5, fig.width = 5}
 res.pca <- PCA(myData[4:ncol(myData)], ncp = 5, graph = FALSE)
-fviz_pca_var(res.pca,
-                      col.var = "contrib", # Colour by contributions to the PC
-                      gradient.cols = c("orange", "purple"),
-                      repel = TRUE     # Avoid text overlapping
-                      ) 
-```
 
-This PCA plot shows that the variables are highly correlated. The least correlated variable is the Rear width. This vector has the largest angle with the Carapace length, the same two variables were used to discover the difference in carapace length distribution between the genders.
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+```
+This PCA plot was created to show the correlation between all variables. This PCA plot shows that the variables are highly correlated. The least correlated variable is the Rear width. This vector has the largest angle with the Carapace length, the same two variables that were used to discover the difference in carapace length distribution between the genders.
+
+
+\newpage
 
 ## Machine learning
 ### cleaning
