@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.pos='H')
 ```
 
-```{r libraries, echo=F, message=F}
+```{r libraries, message=F}
 library(ggplot2)
 library(factoextra)
 library(FactoMineR)
@@ -35,6 +35,7 @@ library(dplyr)
 library(ggcorrplot)
 library(gridExtra)
 library(grid)
+library(ggpubr)
 ```
 
 \newpage
@@ -55,20 +56,24 @@ The goal of this project was to find out if the subspecies of a *Leptograpsus va
 \newpage
 
 ## Data analysis
-```{R read_data}
-#load in the data
+```{r Reading data, echo=FALSE}
+# Load in the data
 myData <- read.csv("datafiles/data.csv")
-```
-After the data was loaded in, a codebook with the attribute names and their descriptions was generated, shown in table 2. To get a better view of the measurements in the dataset, a five number summary was created for each attribute. These values are shown in table 3. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
 
-```{r codebook}
-#create the codebook
+# Making the two separate subgroups
+bluecrabs <- myData[myData$sp == "B",]
+orangecrabs <- myData[myData$sp == "O",]
+
+# Creating the code book
 column <- colnames(myData)
 description <- c("Species", "Sex", "Index", "Frontal lobe size (mm)", "Rear width (mm)", "Carapace length (mm)", "Carapace width (mm)", "Body depth (mm)")
 codebook <- data.frame(column, description)
-kable(codebook, caption = "Codebook of the dataset") %>% 
+
+kable(codebook, caption = "Codebook of the crab data set") %>% 
 kable_styling(font_size = 10, latex_options = "hold_position")
 ```
+After the data was loaded in, a codebook with the attribute names and their descriptions was generated, shown in table 2. To get a better view of the measurements in the data set, a five number summary was created for each attribute. These values are shown in table 3. The table shows that the mean and the median are close in value for each column, meaning that they all are normal distributions.
+
 
 ```{r summary}
 sumdat <- summary(myData[4:8])
@@ -79,23 +84,34 @@ kable(sumdat, caption = "Five number summary of the morphological measurements o
 kable_styling(latex_options = "hold_position")
 ```
 
+The data in its current form, is not ready for the use of a machine learning algorithm, this is due to the Index column, some algorithms will over fit their model by making use of this column, so this column needs to be deleted to be able to verify the quality of the data gathered. The species columns was also moved to the last column so it would be used as the class attribute.
+
+```{r Data cleaning}
+# Cleaning the data by the removal of column Index.
+clean_data <- myData[,c(2,4:ncol(myData), 1)]
+#write.csv(clean_data, "datafiles/cleanedData.csv", row.names = F, col.names = F)
+```
 
 \newpage
 
 ## Visualisation
-### Scatterplot for frontal lobe size against carapace width
-```{r figure1, fig.cap= "Spread of Front lobe size against Carapace width based on color", fig.height = 3.5, fig.width = 5}
-#plot the Front lobe size against Carapace width
-ggplot() +
-  geom_point(data = myData[myData$sp == "B",], mapping = aes(x = FL, y = CW, color = 'Blue')) +
-  geom_point(data = myData[myData$sp == "O",], mapping = aes(x = FL, y = CW, color = 'Orange')) +
-  scale_color_manual(values=c("#4444EE", "#E69F00")) +
-  labs(x = "Frontal lobe size (mm)", y = "Carapace width (mm)", title='Front lobe size against Carapace width')
-```
-This plot plots the frontal lobe size against the carapace width of the blue crabs as blue dots, and of the orange crabs as orange dots. It shows that blue crabs on average have wider carapaces and shorter frontal lobes, and that these attributes are somewhat correlated. This could be a good indicator to determine the subspecies of the crab.
-\newpage
+To gain a better understanding of the correlation between the attributes in the data set, some visualizations were made.
 
-### Scatterplot for rear width against carapace length
+```{r figure1, fig.cap= "Spread of Front lobe size against Carapace width based on color", fig.height = 3.5, fig.width = 5, warning=F}
+#plot the Front lobe size against Carapace width
+ggplot(data = clean_data,  
+aes(x = FL, y = CW)) + 
+  geom_jitter(alpha = 0.5, aes(colour = factor(sp))) +  
+  geom_smooth(method = "lm", se = FALSE, formula="y~x", aes(colour =   factor(sp))) +
+  scale_color_manual(values=c("Blue","Orange")) +
+  ggtitle("Carapace width vs Frontal lobe size") + 
+  xlab("Frontal Lobe Size (mm)") + ylab("Carapace Width (mm)") +
+  scale_colour_discrete(name="Crab species")
+```
+The image above shows the spread of front lobe size against Carapace width based on color, this visualization has been made to be able to see if there was any correlation between these two attributes. The image shows that the blue crabs have wider carapaces on average and shorter frontal lobes, this could be a genetic trait for the color of this crab and therefore this could be a good indicator to determine the subspecies of the crab by the use of a machine learning algorithm. 
+
+Since there were only 200 crabs in this study this could of course be a coincidence, but for the continuation of this report the assumption of data correctness due to differences in species has been accepted.
+
 ```{r figure2, fig.cap= "Spread of Rear width against Carapace length based on color", fig.height = 3.5, fig.width = 5}
 #plot the Rear width against Carapace length
 ggplot() +
@@ -104,10 +120,9 @@ ggplot() +
   scale_color_manual(values=c("#4444EE", "#E69F00")) +
   labs(x = "Rear width (mm)", y = "Carapace length (mm)", title='Rear width against Carapace length')
 ```
-In this plot, the datapoints of the blue crabs are colored blue, and the datapoints of the orange crabs colored orange again. This plot however, does not show a clear difference between blue and orange crabs. Still there are 2 separated groups, this means that these attributes are also somewhat correlated and this could be investigated further.
-\newpage
+Similar to the previous plot, this data also seems to show some correlation with each other, this makes the question "is all the data correlated" rise, this will have to be investigated if the data continues to seem correlated. In the plot above the differences between Rear width against Carapace length are visible for both the different crabs, this being the blue group and the orange group.
 
-### Scatterplot for body depth against carapace width
+\newpage
 ```{r figure3, fig.cap="Spread of Body depth against Carapace width based on color", fig.height = 3.5, fig.width = 5}
 #plot the Body depth against Carapace width
 ggplot() +
@@ -116,63 +131,137 @@ ggplot() +
   scale_color_manual(values=c("#4444EE", "#E69F00")) +
   labs(x = "Body depth (mm)", y = "Carapace width (mm)", title='Body depth against Carapace width')
 ```
-In this plot, again the datapoints were colored to represent the color of the crab. This plot also shows that blue crabs on average have wider carapaces, but that orange crabs tend to have deeper bodies, and that these attributes are somewhat correlated. This could also be a good indicator to determine the subspecies of the crab, though its less clear than figure 1.
-\newpage
+This plot again shows that the blue crabs on average seem to have a wider carapaces, but the orange crabs tend to have deeper bodies. The attributes seem to very correlated with each other and this again supports the theory that there may be multiple morphological attributes that will help determine the color of the crab. However the attributes above seem to be less clear in this then the attributes within figure one.
 
-### Scatterplot for rear width against carapace length
-```{r figure4, fig.cap="Spread of Carapace length against Rear width based on gender", fig.height = 3.5, fig.width = 5}
-# plot the rear width against the carapace length based on gender
-ggplot() +
-  geom_point(data = myData[myData$sex == "F",], mapping = aes(x = RW, y = CL, color = 'Female')) +
-  geom_point(data = myData[myData$sex == "M",], mapping = aes(x = RW, y = CL, color = 'Male')) +
-  scale_color_manual(values=c("#EE4444", "#4444EE")) +
-  labs(x = "Rear width (mm)", y = "Carapace length (mm)", title='Carapace length against Rear width based on gender')
+As shown inside the figures one and three, the metrics of the orange and the blue crabs appear to be in two different groups. This could indicate that the two species could be identifiable by different elements, including their carapace width. However, figure two indicates that the two groups of crabs appear to have some sort of difference even within their own respective group, this could indicate that gender plays a role in the sizes of the morphological measurements.
+
+\newpage
+```{r figure4, fig.cap="Checking if the gender makes a difference"}
+library(ggpubr)
+
+densityplot1 <- ggplot(clean_data, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("FL") + ylab("Density")
+
+
+densityplot2 <- ggplot(clean_data, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("RW") + ylab("Density")
+
+densityplot3 <- ggplot(clean_data, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+ggtitle("CL") + ylab("Density")
+
+densityplot4 <- ggplot(clean_data, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("CW") + ylab("Density")
+
+densityplot5 <- ggplot(clean_data, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+ggtitle("BD") + ylab("Density")
+
+densityplots <- ggarrange(densityplot1, densityplot2, densityplot3, densityplot4, densityplot5,
+                   ncol = 2, nrow = 3)
+
+title <- expression(atop(bold("Expression data"), 
+                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+annotate_figure(densityplots,
+                top=text_grob(title))
 ```
-This plot was created to further investigate the two groups of figure 2. Instead of coloring the datapoints blue and orange based on the color of the crab, the datapoints in this plot were colored according to the gender. Blue for male crabs and red for female crabs. As shown in figure 4, it is indeed two groups of the genders of the crabs. This means that the males have longer carapaces than the females. 
-\newpage
+As seen in the density distribution of figure four, there indeed seems to be a difference within the groups if they are divided by the male and females of the group. 
 
-### Boxplot of carapace length for the genders
-```{r figure5, fig.cap="Distribution of Carapace length for all male and female crabs", fig.height = 3.5, fig.width = 5}
-# sepperate the orange and blue crabs
-orangecrabs <- myData[myData$sp == "O",]
-bluecrabs <- myData[myData$sp == "B",]
+In figure 4.1 the frontal lobe size in millimeters is plotted against the gender of the crabs, here it is clearly visible that there doesn't seem to be much difference in the frontal lobe size between the genders, the only difference that can be seen here appears to be in the the smaller measurements of the frontal lobe size, slightly indicating that the females might have a smaller frontal lobe size in general then males, this however cannot be confirmed from this density plot.
 
-ggplot(data=myData, mapping = aes(x=sex, y=CL)) +
-  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
-  labs(x = "Gender", y = 'Carapace length (mm)', title='All crabs')
+In figure 4.2 the Rear width in millimeters is plotted against the gender of the crabs, here it can be seen that the female crabs appear to have a bigger rear width then the male crabs, it could be that one colour species has a larger rear width, but the most plausible reason for this is that genetically speaking the female crab has a larger rear width.
+
+In figure 4.3 the Carapace length in millimeters is shown here against the gender of the crabs, here similar to figure 4.1 there do not seem to be many differences apart from the fact that more females appear to have a carapace length of around 30 á 35 millimeters in length, this however does not seem significant, and that a small portion of the male crabs seem to have a larger carapace length then the females, but since this doesn't seem like a mayority this could just be an anomaly.
+
+In figure 4.4 the Carapace width is shown, measured in millimeters, plotted against the gender of the crabs similar to the figure 4.3 there do not seem to be a lot of differences, apart from the males where a small portion seem to have a larger carapace width then the females, this is however again a small portion so it may be insignificant.
+
+In figure 4.5 the Body depth in millimeters is shown, this is plotted against the gender of the crabs, here the distributions appear similar, making is seem like gender does not affect body depth what so ever.
+
+One thing that is noticeable here is the distributions of the female crabs, these appear to be more of a normal distribution then the male crabs, which can be due to coincidence since it is a small data set, but it can also be that the body of a female crab is more normally distributed then the body of its male counterpart. 
+
+```{r}
+corr <- round(cor(clean_data[2:6]), 2)
+
+# Plot
+ggcorrplot(corr, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="circle", 
+           colors = c("tomato2", "white", "springgreen3"), 
+           title="Correlogram of the crabs", 
+           ggtheme=theme_bw)
 ```
-This plot was created to further investigate the difference in carapace length for the genders instead of the color of the crab. This plot does not show a big difference between male and female crabs. The female crabs have a slightly shorter carapace, but it does not seem significant. This could be investigated further, but is not much connected to the research question.
-\newpage
+In the plot above the correlation between all the numerical elements of the data set are shown, this has been done to be able to answer the previously arisen question whether or not the data is correlated.
 
-### Boxplots of the carapace length for each gender
-```{r figure6, fig.cap="Distribution of Carapace length for the orange and the blue male and female crabs", message=F}
-require(gridExtra)
+As seen in the plot above, the data inside the data set does indeed seem to correlate which supports the earlier findings, this could mean that there is more then one good attribute to be able to confidently support the investigation of the research question
 
-ocrabs <- ggplot(data=orangecrabs, mapping = aes(x=sex, y=CL)) +
-  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
-  labs(x = "Gender", y = 'Carapace length (mm)', title='Orange crabs')
 
-bcrabs <- ggplot(data=bluecrabs, mapping = aes(x=sex, y=CL)) +
-  geom_boxplot(notch=TRUE, fill=c("#EE4444", "#4444EE")) +
-  labs(x = "Gender", y = 'Carapace length (mm)', title='Blue crabs')
+```{r figure6, fig.cap="Checking if the gender makes a difference"}
+orangedensityplot1 <- ggplot(orangecrabs, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("FL") + ylab("Density")
 
-grid.arrange(bcrabs, ocrabs, ncol=2)
+orangedensityplot2 <- ggplot(orangecrabs, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("RW") + ylab("Density")
+
+orangedensityplot3 <- ggplot(orangecrabs, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+ggtitle("CL") + ylab("Density")
+
+orangedensityplot4 <- ggplot(orangecrabs, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("CW") + ylab("Density")
+
+orangedensityplot5 <- ggplot(orangecrabs, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+ggtitle("BD") + ylab("Density")
+
+orangedensityplots <- ggarrange(orangedensityplot1, orangedensityplot2, orangedensityplot3, orangedensityplot4, orangedensityplot5,
+                   ncol = 2, nrow = 3)
+
+title <- expression(atop(bold("Expression data"), 
+                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+annotate_figure(orangedensityplots,
+                top=text_grob(title))
 ```
-To investigate further upon the difference in carapace length based on the gender, these two boxplots were created to show the difference in carapace length for each gender for each color. Figure 6 shows a small difference in the length of the carapace between male and female orange crabs. It shows that the male crabs have on average a shorter carapace, but the difference is not that big. Figure 7 shows a bigger difference in the length of the carapace between male and female blue crabs. Here, the difference in means does seem significant. As shown in figure 7, it is mainly the blue crabs that have a significant difference in carapace length between genders. It shows that the male crabs have longer carapace lengths on average. In figure 6 its clear that the male orange crabs have shorter carapace lengths on average compared to the females.
-\newpage
+As seen in figure six, the orange crabs their morphological measurements have been taken to be able to see if the sex matters when it comes to the colours of the crabs, 
+```{r figure 7ALSE}
 
-### PCA plot
+bluedensityplot1 <- ggplot(bluecrabs, aes(FL), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("FL") + ylab("Density")
+
+bluedensityplot2 <- ggplot(bluecrabs, aes(RW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("RW") + ylab("Density")
+
+bluedensityplot3 <- ggplot(bluecrabs, aes(CL), alpha = 0.5) + geom_density(aes(col = sex, fill= sex), alpha = 0.5) +
+ggtitle("CL") + ylab("Density")
+
+bluedensityplot4 <- ggplot(bluecrabs, aes(CW), alpha = 0.5) + geom_density(aes(col = sex, fill=sex), alpha = 0.5) +
+ggtitle("CW") + ylab("Density")
+
+bluedensityplot5 <- ggplot(bluecrabs, aes(BD), alpha = 0.5) + geom_density(aes(col = sex,fill= sex), alpha = 0.5) +
+ggtitle("BD") + ylab("Density")
+
+bluedensityplots <- ggarrange(bluedensityplot1, bluedensityplot2, bluedensityplot3, bluedensityplot4, bluedensityplot5,
+                   ncol = 2, nrow = 3)
+
+title <- expression(atop(bold("Expression data"), 
+                         scriptstyle(paste("Density plots of all the morhpological measurements compared to sex"))))
+annotate_figure(bluedensityplots,
+                top=text_grob(title))
+```
+
+In figure six and seven the morphological variables of both color crabs have been put into a density plot to see if there is any correlation there, here it is however clearly visible these two separate colors differ in their measurements. As can be seen in figure six: There are no real differences with the morphological measurements for the orange crabs, apart from the rear width, and here the females are noted to have a larger rear width, apart from that some males appear to be on the lager side of the spectrum in the density plot, but this does not seem significant enough that it is to be mentioned. The orange crabs also seem to have somewhat of a normal distribution or bell curve when it comes to their measurements, this could indicate that they are either smaller or their morphological components are more formed to each other.
+
+In figure seven the blue crabs are depicted, here differing from figure six, the male crabs of the blue species seem to be bigger in almost all aspects of the morphological components apart from rear width, this would indicate that for this species the male variant is bigger then the female variant, how ever, this is a data set with only 100 crabs per species and for a correct distribution a much larger sample size should be taken. For the carapace length, it seems that for this species alone it would be very good to be determined if the crab was of significant size, which species it would belong to. To see if this would work with a machine learning algorithm, further testing will need to be done.
+
+
+
 ```{r pca, fig.height = 3.5, fig.width = 5}
 res.pca <- PCA(myData[4:ncol(myData)], ncp = 5, graph = FALSE)
-
-fviz_pca_var(res.pca, col.var = "cos2",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
-             repel = TRUE)
+fviz_pca_var(res.pca,
+                      col.var = "contrib", # Colour by contributions to the PC
+                      gradient.cols = c("orange", "purple"),
+                      repel = TRUE     # Avoid text overlapping
+                      ) 
 ```
-This PCA plot was created to show the correlation between all variables. This PCA plot shows that the variables are highly correlated. The least correlated variable is the Rear width. This vector has the largest angle with the Carapace length, the same two variables that were used to discover the difference in carapace length distribution between the genders.
 
-
-\newpage
+This PCA plot shows that the variables are highly correlated. The least correlated variable is the Rear width. This vector has the largest angle with the Carapace length, the same two variables were used to discover the difference in carapace length distribution between the genders.
 
 ## Machine learning
 ### cleaning
