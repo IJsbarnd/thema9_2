@@ -129,7 +129,7 @@ There were no further calculations needed for this project. The used script was 
 The results from this research project are placed within two different categories, there being the exploratory data analysis and the machine learning algorithm analysis. This choice has been made since both sections have different outcomes and goals, but both are equally important.
 
 ## Exploratory data analysis
-The goal of the exploratory data analusis was to be able to give an overview of the data, which included a look at the original data and figuring out whether or not this data is suitable for machine learning and if not, then making it suitable for machine learning. Another goal here was to be able to check if the research question was capable of being answered.
+The goal of the exploratory data analysis was to be able to give an overview of the data, which included a look at the original data and figuring out whether or not this data is suitable for machine learning and if not, then making it suitable for machine learning. Another goal here was to be able to check if the research question was capable of being answered.
 
 Table three shows the five number summary of all the numerical attributes within the crab data set, Since the instances within this data set differ from each other but do seem correlated to each other the mean and medians are somewhat close together. There are no missing values present since they are absent from the data set.
 
